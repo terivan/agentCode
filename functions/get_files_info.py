@@ -57,5 +57,5 @@ def get_files_info(working_directory, directory=None):
       stdOut_string += f"- {filename}: file_size={os.path.getsize(file_path)} bytes, is_dir={os.path.isdir(file_path)}\n"
 
     print(stdOut_string)
-  except Error as e:
+  except Exception as e:
     return f"Error: {e}"
