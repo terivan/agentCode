@@ -11,6 +11,7 @@ from functions.get_files_info import schema_get_files_info, get_files_info
 from functions.get_file_content import schema_get_file_content, get_file_content
 from functions.run_python import schema_run_python_file, run_python_file
 from functions.write_file import schema_write_file, write_file
+
 system_prompt = """
 You are a helpful AI coding agent.
 
@@ -82,28 +83,49 @@ def call_function(function_call, verbose=False):
         ],
     )
 
+NUM_ITERATIONS = 2
+for i in range(0,NUM_ITERATIONS):
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.0-flash-001",
+            contents=messages,
+            config=types.GenerateContentConfig(
+            tools=[available_functions], system_instruction=system_prompt
+            )
+        )
+        candidates = response.candidates
 
-response = client.models.generate_content(
-    model="gemini-2.0-flash-001",
-    contents=messages,
-    config=types.GenerateContentConfig(
-    tools=[available_functions], system_instruction=system_prompt
-    )
-)
+        # for candidate in candidates:
+        #     messages.append(candidate.content)
 
-prompt_tokens = response.usage_metadata.prompt_token_count
-response_tokens = response.usage_metadata.candidates_token_count
+        prompt_tokens = response.usage_metadata.prompt_token_count
+        response_tokens = response.usage_metadata.candidates_token_count
 
-if "--verbose" in sys.argv[2:]:
-    print(f"User prompt: {user_prompt}")
-    print(f"Prompt tokens: {prompt_tokens}")
-    print(f"Response tokens: {response_tokens}")
+        if "--verbose" in sys.argv[2:]:
+            print(f"User prompt: {user_prompt}")
+            print(f"Prompt tokens: {prompt_tokens}")
+            print(f"Response tokens: {response_tokens}")
 
-function_calls = response.function_calls
-for call in function_calls:
-    # print(f"Calling function: {call.name}({call.args})")
-    function_call_result =  call_function(call, verbose=True)
-    if function_call_result.parts[0].function_response.response:
-        print(f"-> {function_call_result.parts[0].function_response.response}")
-    else:
-        raise Exception("Function response doesn't exist")
+        function_calls = response.function_calls
+        for call in function_calls:
+            # print(f"Calling function: {call.name}({call.args})")
+            function_call_result =  call_function(call, verbose=True)
+            if function_call_result.parts[0].function_response.response:
+                # print(f"-> {function_call_result.parts[0].function_response.response}")
+                func_response = function_call_result.parts[0].function_response
+                response_message = types.Content(
+                    role="tool",
+                    parts=[
+                        types.Part().from_function_response(func_response)                       
+                    ],
+                )
+                messages.append(response_message)
+            else:
+                raise Exception("Function response doesn't exist")
+        
+        # if response.text:
+        print(response.text)
+            # break
+    except Exception as e:
+        print(e)
+
