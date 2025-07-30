@@ -113,6 +113,7 @@ for i in range(0,NUM_ITERATIONS):
             if function_call_result.parts[0].function_response.response:
                 # print(f"-> {function_call_result.parts[0].function_response.response}")
                 func_response = function_call_result.parts[0].function_response
+                print(func_response)
                 response_message = types.Content(
                     role="tool",
                     parts=[
