@@ -19,7 +19,7 @@ def get_files_info(working_directory, directory=None):
       file_path = os.path.join(full_path, filename)
       stdOut_string += f"- {filename}: file_size={os.path.getsize(file_path)} bytes, is_dir={os.path.isdir(file_path)}\n"
 
-    print(stdOut_string)
+    return stdOut_string
   except Exception as e:
     return f"Error: {e}"
 
@@ -32,7 +32,8 @@ schema_get_files_info = types.FunctionDeclaration(
         properties={
             "directory": types.Schema(
                 type=types.Type.STRING,
-                description="The directory to list files from, relative to the working directory. If not provided, lists files in the working directory itself.",
+                description="The directory to list files from, \
+                relative to the working directory. Must be provided.",
             ),
         },
     ),

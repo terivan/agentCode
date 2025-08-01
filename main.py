@@ -1,6 +1,7 @@
 import os
 import sys
 from dotenv import load_dotenv
+import traceback
 
 load_dotenv()
 api_key = os.environ.get("GEMINI_API_KEY")
@@ -26,7 +27,7 @@ When a user asks a question or makes a request,
 All paths you provide should be relative to the
 working directory.
 You do not need to specify the working directory in your function 
-calls as it is automatically injected for security reasons.
+calls as it is automatically injected for security reasons. Provide necessary arguments for these functions 
 """
 
 user_prompt = sys.argv[1]
@@ -83,8 +84,11 @@ def call_function(function_call, verbose=False):
         ],
     )
 
-NUM_ITERATIONS = 2
+NUM_ITERATIONS = 6
 for i in range(0,NUM_ITERATIONS):
+    print("------------------")
+    print(f"ITERATION # {i}")
+    print("------------------")
     try:
         response = client.models.generate_content(
             model="gemini-2.0-flash-001",
@@ -95,8 +99,9 @@ for i in range(0,NUM_ITERATIONS):
         )
         candidates = response.candidates
 
-        # for candidate in candidates:
-        #     messages.append(candidate.content)
+        for candidate in candidates:
+            messages.append(candidate.content)
+        
 
         prompt_tokens = response.usage_metadata.prompt_token_count
         response_tokens = response.usage_metadata.candidates_token_count
@@ -106,18 +111,24 @@ for i in range(0,NUM_ITERATIONS):
             print(f"Prompt tokens: {prompt_tokens}")
             print(f"Response tokens: {response_tokens}")
 
+        if not response.function_calls:
+            print(response.text)
+            continue
         function_calls = response.function_calls
         for call in function_calls:
-            # print(f"Calling function: {call.name}({call.args})")
+            print(f"Calling function: {call.name}({call.args})")
             function_call_result =  call_function(call, verbose=True)
+            print("==========================")
             if function_call_result.parts[0].function_response.response:
                 # print(f"-> {function_call_result.parts[0].function_response.response}")
-                func_response = function_call_result.parts[0].function_response
+                func_response = function_call_result.parts[0].function_response.response
+                name = function_call_result.parts[0].function_response.response
                 print(func_response)
                 response_message = types.Content(
                     role="tool",
                     parts=[
-                        types.Part().from_function_response(func_response)                       
+                        types.Part.from_function_response(response=func_response,
+                         name = call.name)                       
                     ],
                 )
                 messages.append(response_message)
@@ -129,4 +140,6 @@ for i in range(0,NUM_ITERATIONS):
             # break
     except Exception as e:
         print(e)
+        traceback.print_exc() # Prints the full traceback to sys.stderr by default
+
 
